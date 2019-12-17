@@ -47,14 +47,20 @@ const {
 const isManualMode = answers => answers.preset === '__manual__'
 
 module.exports = class Creator extends EventEmitter {
+  // 这个Creator的构造器接受三个参数
+  // name: 创建的文件名
+  // context: 目标文件夹
+  // TODO promptModules
   constructor (name, context, promptModules) {
     super()
 
     this.name = name
     this.context = process.env.VUE_CLI_CONTEXT = context
+    // resolveIntroPrompts返回的是配置选项，后面有注释，不过还有点没看明白的
     const { presetPrompt, featurePrompt } = this.resolveIntroPrompts()
     this.presetPrompt = presetPrompt
     this.featurePrompt = featurePrompt
+    // resolveOutroPrompts返回了一些配置项
     this.outroPrompts = this.resolveOutroPrompts()
     this.injectedPrompts = []
     this.promptCompleteCbs = []
@@ -66,12 +72,13 @@ module.exports = class Creator extends EventEmitter {
     const promptAPI = new PromptModuleAPI(this)
     promptModules.forEach(m => m(promptAPI))
   }
-
+  // vue create 的时候调的方法
   async create (cliOptions = {}, preset = null) {
     const isTestOrDebug = process.env.VUE_CLI_TEST || process.env.VUE_CLI_DEBUG
     const { run, name, context, afterInvokeCbs, afterAnyInvokeCbs } = this
 
     if (!preset) {
+      // 如果没有preset，就去取
       if (cliOptions.preset) {
         // vue create foo --preset bar
         preset = await this.resolvePreset(cliOptions.preset, cliOptions.clone)
@@ -326,21 +333,31 @@ module.exports = class Creator extends EventEmitter {
     return preset
   }
 
+  // 使用vue create --preset 调用的方法
   async resolvePreset (name, clone) {
     let preset
+    // loadOptions返回的是默认的~/.vuerc的配置，如果有这个文件的话
     const savedPresets = loadOptions().presets || {}
-
+    
     if (name in savedPresets) {
+      // 如果name在savedPresets这个对象里，preset就是这个savedPresets[name]值
       preset = savedPresets[name]
     } else if (name.endsWith('.json') || /^\./.test(name) || path.isAbsolute(name)) {
+      // 如果这个name是个json文件，或者文件名里有 '.'，或者是个绝对路径
+      // 则返回该路径的json文件解析出的对象，或者是generator.js 或者是generator/index.js解析出的对象
       preset = await loadLocalPreset(path.resolve(name))
     } else if (name.includes('/')) {
+      // 如果name里有'/'
+      // 就去git那下载，下载好了再把preset置为这个下载好的东西
       logWithSpinner(`Fetching remote preset ${chalk.cyan(name)}...`)
+      // 这里相当于一个loading
       this.emit('creation', { event: 'fetch-remote-preset' })
       try {
+        // loadRemotePreset就是去download 这个name路径的git地址的文件
         preset = await loadRemotePreset(name, clone)
         stopSpinner()
       } catch (e) {
+        // 这就是下载出问题了的报错信息
         stopSpinner()
         error(`Failed fetching remote preset ${chalk.cyan(name)}:`)
         throw e
@@ -348,6 +365,7 @@ module.exports = class Creator extends EventEmitter {
     }
 
     // use default preset if user has not overwritten it
+    // 如果没有写preset就用默认的
     if (name === 'default' && !preset) {
       preset = defaults.presets.default
     }
@@ -388,11 +406,16 @@ module.exports = class Creator extends EventEmitter {
   }
 
   getPresets () {
+    // loadOptions方法返回默认的.vuerc的配置信息
     const savedOptions = loadOptions()
+    // 然后合并这两个preset
     return Object.assign({}, savedOptions.presets, defaults.presets)
   }
 
   resolveIntroPrompts () {
+    // 返回两个选项
+    // presetPrompt：选择preset的，通过getPresets这个方法返回
+    // ? featurePrompt：检查项目所需功能，但是choices里是空的？这是什么操作？？？
     const presets = this.getPresets()
     const presetChoices = Object.keys(presets).map(name => {
       return {

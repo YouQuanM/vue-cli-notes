@@ -224,13 +224,20 @@ class GeneratorAPI {
    */
   render (source, additionalData = {}, ejsOptions = {}) {
     const baseDir = extractCallDir()
+    // 如果是字符串
     if (isString(source)) {
+      // 拼一下项目基础路径
       source = path.resolve(baseDir, source)
+      // 
       this._injectFileMiddleware(async (files) => {
         const data = this._resolveData(additionalData)
+        // 引入golbby包，用来返回对应的路径参数
         const globby = require('globby')
+        // ?
         const _files = await globby(['**/*'], { cwd: source })
+        // 循环传进来的_files
         for (const rawPath of _files) {
+          // 将_开头的文件转为.开头的文件
           const targetPath = rawPath.split('/').map(filename => {
             // dotfiles are ignored when published to npm, therefore in templates
             // we need to use underscore instead (e.g. "_gitignore")
@@ -241,8 +248,10 @@ class GeneratorAPI {
               return `${filename.slice(1)}`
             }
             return filename
-          }).join('/')
+          }).join('/') // 然后再拼回来
+          // 每个路径对应一个render, sourcePath代表传进来的路径和基础路径的拼接
           const sourcePath = path.resolve(source, rawPath)
+          // 调用renderFile方法
           const content = renderFile(sourcePath, data, ejsOptions)
           // only set file if it's not all whitespace, or is a Buffer (binary files)
           if (Buffer.isBuffer(content) || /[^\s]/.test(content)) {
@@ -250,7 +259,7 @@ class GeneratorAPI {
           }
         }
       })
-    } else if (isObject(source)) {
+    } else if (isObject(source)) { // 如果是对象
       this._injectFileMiddleware(files => {
         const data = this._resolveData(additionalData)
         for (const targetPath in source) {

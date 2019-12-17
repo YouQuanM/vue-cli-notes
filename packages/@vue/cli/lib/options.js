@@ -30,7 +30,7 @@ const schema = createSchema(joi => joi.object().keys({
 exports.validatePreset = preset => validate(preset, presetSchema, msg => {
   error(`invalid preset options: ${msg}`)
 })
-
+// 默认的配置
 exports.defaultPreset = {
   useConfigFiles: false,
   cssPreprocessor: undefined,
@@ -42,7 +42,7 @@ exports.defaultPreset = {
     }
   }
 }
-
+// 默认的配置
 exports.defaults = {
   lastChecked: undefined,
   latestVersion: undefined,
@@ -60,6 +60,7 @@ exports.loadOptions = () => {
   if (cachedOptions) {
     return cachedOptions
   }
+  // 如果rcPath存在，也就是.vuerc文件存在，就尝试去readFileSync这个文件并返回其配置信息
   if (fs.existsSync(rcPath)) {
     try {
       cachedOptions = JSON.parse(fs.readFileSync(rcPath, 'utf-8'))
